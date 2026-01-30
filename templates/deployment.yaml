@@ -51,11 +51,11 @@ spec:
               npm install -g pnpm
               
                {{- if .Values.openclaw.globalPackages }}
-               pnpm setup
+               export SHELL=/bin/bash && pnpm setup
                export PNPM_HOME="$HOME/.pnpm"
                export PATH="$PNPM_HOME:$PATH"
 
-               pnpm setup || true
+               export SHELL=/bin/bash && pnpm setup || true
                export PNPM_HOME="$HOME/.pnpm"
                export PATH="$PNPM_HOME:$PATH"
 
@@ -140,11 +140,11 @@ spec:
               source /openclaw-build/openclaw.env || true
               
                {{- if .Values.openclaw.globalPackages }}
-               pnpm setup
+               export SHELL=/bin/bash && pnpm setup
                export PNPM_HOME="$HOME/.pnpm"
                export PATH="$PNPM_HOME:$PATH"
 
-               pnpm setup || true
+               export SHELL=/bin/bash && pnpm setup || true
                export PNPM_HOME="$HOME/.pnpm"
                export PATH="$PNPM_HOME:$PATH"
 
