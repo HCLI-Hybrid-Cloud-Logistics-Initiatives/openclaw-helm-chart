@@ -1,0 +1,32 @@
+# Example: OpenClaw with Google Gemini CLI installed
+
+image:
+  repository: node
+  tag: "25-bookworm"
+
+openclaw:
+  version: latest
+  # Install Gemini CLI globally so it's available for auth and configuration
+  globalPackages:
+    - "@google/gemini-cli"
+
+service:
+  type: ClusterIP
+  port: 18789
+
+persistence:
+  enabled: true
+  config:
+    size: 1Gi
+  memory:
+    size: 5Gi
+  build:
+    size: 10Gi  # Large enough for built OpenClaw + node_modules + extensions
+
+env:
+  - name: OPENCLAW_GATEWAY_TOKEN
+    value: "your-secure-token-here"
+
+openclawConfig:
+  gateway:
+    bind: lan

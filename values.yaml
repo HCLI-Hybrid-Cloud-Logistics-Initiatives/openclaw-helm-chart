@@ -16,6 +16,9 @@ image:
 openclaw:
   # Version to install: 'latest' or specific version like '2026.1.29'
   version: latest
+  # Additional npm packages to install globally (for CLI tools, auth providers, etc.)
+  globalPackages:
+    - "@google/gemini-cli"
 
 # Service configuration
 service:
@@ -60,6 +63,8 @@ persistence:
     # Persistent volume for extraction/memory directory (/home/node/claw)
     size: 5Gi
     accessMode: ReadWriteOnce
+  
+
 
 # OpenClaw configuration
 # The gateway will auto-initialize on first start with sensible defaults

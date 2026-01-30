@@ -50,6 +50,19 @@ spec:
               echo "Installing pnpm..."
               npm install -g pnpm
               
+               {{- if .Values.openclaw.globalPackages }}
+               pnpm setup
+               export PNPM_HOME="$HOME/.pnpm"
+               export PATH="$PNPM_HOME:$PATH"
+
+               pnpm setup || true
+               export PNPM_HOME="$HOME/.pnpm"
+               export PATH="$PNPM_HOME:$PATH"
+
+               echo "Installing global packages with pnpm: {{ join ", " .Values.openclaw.globalPackages }}"
+               pnpm add -g {{ join " " .Values.openclaw.globalPackages }}
+               {{- end }}
+
               echo "Cloning OpenClaw repository..."
               cd /tmp
               git clone https://github.com/openclaw/openclaw.git --depth 1
@@ -69,6 +82,7 @@ spec:
               cp -r /tmp/openclaw/dist /openclaw-build/
               cp -r /tmp/openclaw/node_modules /openclaw-build/
               cp -r /tmp/openclaw/packages /openclaw-build/
+               cp -r /tmp/openclaw/extensions /openclaw-build/
               cp /tmp/openclaw/openclaw.mjs /openclaw-build/
               cp /tmp/openclaw/package.json /openclaw-build/
               
@@ -125,6 +139,19 @@ spec:
               # Source openclaw PATH
               source /openclaw-build/openclaw.env || true
               
+               {{- if .Values.openclaw.globalPackages }}
+               pnpm setup
+               export PNPM_HOME="$HOME/.pnpm"
+               export PATH="$PNPM_HOME:$PATH"
+
+               pnpm setup || true
+               export PNPM_HOME="$HOME/.pnpm"
+               export PATH="$PNPM_HOME:$PATH"
+
+               echo "Installing global packages with pnpm: {{ join ", " .Values.openclaw.globalPackages }}"
+               pnpm add -g {{ join " " .Values.openclaw.globalPackages }}
+               {{- end }}
+
               # On first start, use CLI args to initialize config
               # On subsequent starts, use saved config (allows hot-reload via gateway restart)
               if [ ! -f /home/node/.openclaw/openclaw.json ]; then
@@ -164,9 +191,15 @@ spec:
           {{- end }}
           
           {{- with .Values.env }}
-          env:
-            {{- toYaml . | nindent 12 }}
           {{- end }}
+          env:
+            {{- if .Values.env }}
+            {{- toYaml .Values.env | nindent 12 }}
+            {{- end }}
+            - name: PATH
+              value: /openclaw-build/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+            - name: OPENCLAW_BUNDLED_PLUGINS_DIR
+              value: /openclaw-build/extensions
           
           {{- with .Values.envFrom }}
           envFrom:
