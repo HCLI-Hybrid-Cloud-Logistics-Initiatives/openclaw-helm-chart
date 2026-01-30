@@ -1,0 +1,76 @@
+# Example: Production deployment
+# Note: OpenClaw is stateful and single-instance only (no scaling, no HA)
+# See README.md for why this is not a traditional K8s app
+
+image:
+  repository: node
+  tag: "25-bookworm"
+
+openclaw:
+  version: latest
+
+service:
+  type: ClusterIP
+  port: 18789
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/websocket-services: openclaw
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: openclaw.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: openclaw-tls
+      hosts:
+        - openclaw.example.com
+
+persistence:
+  enabled: true
+  config:
+    size: 5Gi
+  memory:
+    size: 20Gi
+
+resources:
+  requests:
+    memory: "1Gi"
+    cpu: "500m"
+  limits:
+    memory: "4Gi"
+
+env:
+  - name: NODE_ENV
+    value: production
+  - name: OPENCLAW_GATEWAY_TOKEN
+    value: "your-secure-token-here"
+
+openclawConfig:
+  gateway:
+    bind: lan
+
+nodeSelector:
+  node-role: openclaw
+
+tolerations:
+  - key: "openclaw"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: node-type
+              operator: In
+              values:
+                - openclaw-dedicated

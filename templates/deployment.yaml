@@ -1,0 +1,216 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "openclaw.fullname" . }}
+  labels:
+    {{- include "openclaw.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "openclaw.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "openclaw.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      securityContext:
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+      serviceAccountName: {{ include "openclaw.serviceAccountName" . }}
+      
+      {{- if .Values.persistence.enabled }}
+      initContainers:
+        # First init: Install OpenClaw via pnpm from source
+        - name: openclaw-installer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              echo "Installing dependencies..."
+              apt-get update
+              apt-get install -y --no-install-recommends git curl ca-certificates
+              
+              echo "Installing pnpm..."
+              npm install -g pnpm
+              
+              echo "Cloning OpenClaw repository..."
+              cd /tmp
+              git clone https://github.com/openclaw/openclaw.git --depth 1
+              cd openclaw
+              
+              echo "Installing OpenClaw dependencies with pnpm..."
+              pnpm install --frozen-lockfile
+              
+              echo "Building UI assets..."
+              pnpm ui:build
+              
+              echo "Building OpenClaw..."
+              pnpm build
+              
+              echo "Copying built OpenClaw to shared volume..."
+              mkdir -p /openclaw-build
+              cp -r /tmp/openclaw/dist /openclaw-build/
+              cp -r /tmp/openclaw/node_modules /openclaw-build/
+              cp -r /tmp/openclaw/packages /openclaw-build/
+              cp /tmp/openclaw/openclaw.mjs /openclaw-build/
+              cp /tmp/openclaw/package.json /openclaw-build/
+              
+              # Create symlink in PATH for easy access
+              mkdir -p /openclaw-build/bin
+              ln -sf /openclaw-build/openclaw.mjs /openclaw-build/bin/openclaw
+              echo "export PATH=/openclaw-build/bin:$PATH" > /openclaw-build/openclaw.env
+              
+              echo "Verifying OpenClaw installation..."
+              node /openclaw-build/openclaw.mjs --version
+              echo "✅ OpenClaw built successfully with UI and plugins"
+          volumeMounts:
+            - name: openclaw-build
+              mountPath: /openclaw-build
+        
+        # Second init: Create directories
+        - name: config-init
+          image: alpine:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /home/node/.openclaw
+              mkdir -p /home/node/claw
+              chown 1000:1000 /home/node/.openclaw /home/node/claw
+              chmod 755 /home/node/.openclaw /home/node/claw
+              echo "Directories created"
+          volumeMounts:
+            - name: config-map
+              mountPath: /config
+              readOnly: true
+            - name: openclaw-build
+              mountPath: /openclaw-build
+            {{- if .Values.persistence.enabled }}
+            - name: config
+              mountPath: /home/node/.openclaw
+            - name: memory
+              mountPath: /home/node/claw
+            {{- end }}
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+      {{- end }}
+      
+      containers:
+        - name: gateway
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - bash
+            - -c
+            - |
+              # Source openclaw PATH
+              source /openclaw-build/openclaw.env || true
+              
+              # On first start, use CLI args to initialize config
+              # On subsequent starts, use saved config (allows hot-reload via gateway restart)
+              if [ ! -f /home/node/.openclaw/openclaw.json ]; then
+                exec node /openclaw-build/openclaw.mjs gateway --port 18789 --bind lan --allow-unconfigured
+              else
+                exec node /openclaw-build/openclaw.mjs gateway
+              fi
+          args: []
+          ports:
+            - name: http
+              containerPort: 18789
+              protocol: TCP
+          
+          securityContext:
+            runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.securityContext.runAsGroup }}
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+            allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          
+          {{- if .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- end }}
+          
+          {{- if .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- end }}
+          
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          
+          {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          
+          volumeMounts:
+            - name: openclaw-build
+              mountPath: /openclaw-build
+            {{- if .Values.persistence.enabled }}
+            - name: config
+              mountPath: /home/node/.openclaw
+            - name: memory
+              mountPath: /home/node/claw
+            {{- end }}
+      
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      volumes:
+        # Shared volume for OpenClaw build artifacts
+        - name: openclaw-build
+          emptyDir: {}
+        - name: config-map
+          configMap:
+            name: {{ include "openclaw.fullname" . }}-config
+            defaultMode: 0444
+        {{- if .Values.persistence.enabled }}
+        - name: config
+          persistentVolumeClaim:
+            claimName: {{ include "openclaw.configPVCName" . }}
+        - name: memory
+          persistentVolumeClaim:
+            claimName: {{ include "openclaw.memoryPVCName" . }}
+        {{- end }}

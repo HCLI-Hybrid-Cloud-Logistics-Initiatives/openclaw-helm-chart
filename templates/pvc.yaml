@@ -1,0 +1,31 @@
+{{- if .Values.persistence.enabled }}
+{{- if not .Values.persistence.existingClaim.config }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "openclaw.configPVCName" . }}
+  labels:
+    {{- include "openclaw.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.config.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.config.size }}
+---
+{{- end }}
+{{- if not .Values.persistence.existingClaim.memory }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "openclaw.memoryPVCName" . }}
+  labels:
+    {{- include "openclaw.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.memory.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.memory.size }}
+{{- end }}
+{{- end }}

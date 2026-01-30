@@ -1,0 +1,37 @@
+# Example: Development deployment with minimal resources
+# Note: OpenClaw is stateful and single-instance. Do not change replicaCount.
+
+image:
+  repository: node
+  tag: "25-bookworm"
+
+openclaw:
+  version: latest
+
+service:
+  type: ClusterIP
+  port: 18789
+
+persistence:
+  enabled: true
+  config:
+    size: 1Gi
+  memory:
+    size: 2Gi
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "50m"
+  limits:
+    memory: "512Mi"
+
+env:
+  - name: NODE_ENV
+    value: development
+  - name: OPENCLAW_GATEWAY_TOKEN
+    value: "dev-token-123"
+
+openclawConfig:
+  gateway:
+    bind: lan

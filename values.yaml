@@ -1,0 +1,165 @@
+# Default values for OpenClaw Helm chart
+
+# ⚠️ StatefulSet Configuration (OpenClaw is stateful, single-instance only)
+# Do not change replicaCount or enable autoscaling
+# See README.md for why this is not a traditional Kubernetes application
+
+# Node.js base image for running OpenClaw
+# OpenClaw is installed at startup via pnpm (not pre-built)
+image:
+  repository: node
+  tag: "25-bookworm"
+  pullPolicy: IfNotPresent
+
+# OpenClaw installation configuration
+# Install from source at pod startup instead of pre-built image
+openclaw:
+  # Version to install: 'latest' or specific version like '2026.1.29'
+  version: latest
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 18789
+  annotations: {}
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    # For WebSocket support, ensure backend protocol is set appropriately
+    # nginx.ingress.kubernetes.io/websocket-services: openclaw
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: openclaw.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # tls:
+  #   - secretName: openclaw-tls
+  #     hosts:
+  #       - openclaw.example.com
+
+# Persistence configuration
+persistence:
+  enabled: true
+  # Use existing PVC instead of creating new ones
+  existingClaim: {}
+    # config: my-existing-pvc-config
+    # memory: my-existing-pvc-memory
+  
+  config:
+    # Persistent volume for OpenClaw config directory (/home/node/.openclaw)
+    size: 1Gi
+    accessMode: ReadWriteOnce
+  
+  memory:
+    # Persistent volume for extraction/memory directory (/home/node/claw)
+    size: 5Gi
+    accessMode: ReadWriteOnce
+
+# OpenClaw configuration
+# The gateway will auto-initialize on first start with sensible defaults
+# On subsequent starts, it uses the persisted config (CLI args ignored)
+openclawConfig:
+  gateway:
+    # bind mode controls which network interface to listen on:
+    # - loopback: 127.0.0.1 (default, only local access)
+    # - lan: 0.0.0.0 (all interfaces, needed for Kubernetes)
+    # - auto: loopback if available, else 0.0.0.0
+    # - tailnet: Tailnet IPv4 if available
+    # - custom: custom IP address
+    bind: lan
+  # You can add more configuration here, but the primary way to configure
+  # OpenClaw after first startup is via 'openclaw onboard' or direct config edits
+
+# Security context (runs as root to build OpenClaw, then application handles permissions)
+securityContext:
+  runAsNonRoot: false
+  runAsUser: 0
+  runAsGroup: 0
+  fsGroup: 0
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Resource limits and requests
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "100m"
+  limits:
+    memory: "2Gi"
+    # CPU limit omitted to allow bursting during build
+
+# Replicas (MUST be 1 - OpenClaw is single-instance)
+replicaCount: 1
+
+# Service Account
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod labels
+podLabels: {}
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Environment variables
+env: []
+  # - name: NODE_ENV
+  #   value: production
+  # - name: OPENCLAW_GATEWAY_TOKEN
+  #   value: "your-secure-token-here"
+
+# Environment variables from secrets/configmaps
+envFrom: []
+  # - configMapRef:
+  #     name: openclaw-env
+  # - secretRef:
+  #     name: openclaw-secrets
+
+# Secrets configuration
+secrets:
+  # Use existing secret for tokens/credentials
+  existingSecret: {}
+    # name: openclaw-secrets
+    # keys:
+    #   - token
+    #   - apiKey
+
+# Liveness probe (checks if gateway is responding)
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 18789
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Readiness probe (checks if pod is ready to accept traffic)
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 18789
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
