@@ -44,8 +44,8 @@ jobs:
 
       - name: Push chart to OCI registry
         run: |
-          helm push ${{ env.CHART_NAME }}-${{ steps.version.outputs.VERSION }}.tgz \
-            oci://${{ env.REGISTRY }}/${{ github.repository_owner }}
+          helm push openclaw-helm-chart-${{ steps.version.outputs.VERSION }}.tgz \
+            oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/openclaw-helm-chart
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
