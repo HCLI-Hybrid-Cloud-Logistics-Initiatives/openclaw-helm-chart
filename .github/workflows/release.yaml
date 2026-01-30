@@ -45,7 +45,7 @@ jobs:
       - name: Push chart to OCI registry
         run: |
           helm push openclaw-helm-chart-${{ steps.version.outputs.VERSION }}.tgz \
-            oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/openclaw-helm-chart
+            oci://${{ env.REGISTRY }}/${{ github.repository_owner | lower }}/openclaw-helm-chart
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -57,7 +57,7 @@ jobs:
             ## Installation
             
             ```bash
-            helm pull oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_NAME }} \
+            helm pull oci://${{ env.REGISTRY }}/${{ github.repository_owner | lower }}/openclaw-helm-chart \
               --version ${{ steps.version.outputs.VERSION }}
             
             helm install openclaw ./openclaw-helm-chart-${{ steps.version.outputs.VERSION }}.tgz
@@ -65,6 +65,6 @@ jobs:
             
             Or install directly:
             ```bash
-            helm install openclaw oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_NAME }} \
+            helm install openclaw oci://${{ env.REGISTRY }}/${{ github.repository_owner | lower }}/openclaw-helm-chart \
               --version ${{ steps.version.outputs.VERSION }}
             ```
