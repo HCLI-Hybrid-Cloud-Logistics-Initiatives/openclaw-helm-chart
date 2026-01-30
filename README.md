@@ -46,13 +46,13 @@ Or install directly from source:
 helm install openclaw ./openclaw-chart
 ```
 
-### Basic Deployment with Custom Image
+### Basic Deployment
 
 ```bash
-helm install openclaw ./openclaw-chart \
-  --set image.repository=your-registry/openclaw \
-  --set image.tag=v1.0.0
+helm install openclaw ./openclaw-chart
 ```
+
+The chart will automatically build OpenClaw from source on first startup (takes 5-7 minutes).
 
 ### Enable Ingress
 
@@ -135,54 +135,22 @@ This allows you to make configuration changes and immediately apply them without
 
 ### Provide Custom Configuration
 
+Most configuration is done via the `openclaw onboard` wizard after first deployment. For advanced Helm-level config:
+
 ```bash
 helm install openclaw ./openclaw-chart \
-  --set openclawConfig.gateway.port=18789 \
-  --set openclawConfig.features.enableBrowser=true
-```
-
-Or using a values file:
-
-```yaml
-# values.yaml
-image:
-  repository: openclaw
-  tag: latest
-
-env:
-  - name: OPENCLAW_GATEWAY_TOKEN
-    value: "your-secure-token-here"
-
-openclawConfig:
-  gateway:
-    port: 18789
-  features:
-    enableBrowser: true
-  database:
-    url: "postgres://user:pass@postgres:5432/openclaw"
-
-persistence:
-  enabled: true
-  config:
-    size: 2Gi
-  memory:
-    size: 10Gi
-```
-
-Then install:
-```bash
-helm install openclaw ./openclaw-chart -f values.yaml
+  --set openclawConfig.gateway.bind=lan
 ```
 
 ## Configuration
 
 ### Image Settings
 
+The chart uses `node:25-bookworm` as the base image and builds OpenClaw from source at pod startup.
+
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `image.repository` | Image repository | `openclaw` |
-| `image.tag` | Image tag | `latest` |
-| `image.pullPolicy` | Pull policy | `IfNotPresent` |
+| `openclaw.version` | OpenClaw version to build | `latest` |
 
 ### Service Configuration
 
@@ -205,28 +173,22 @@ helm install openclaw ./openclaw-chart -f values.yaml
 
 ### OpenClaw Configuration
 
-The `openclawConfig` value is stored in a ConfigMap and merged with persistent configuration during pod initialization:
+Most configuration is done via `openclaw onboard` after deployment. The Helm `openclawConfig` value is applied only on first startup:
 
 ```yaml
 openclawConfig:
   gateway:
-    port: 18789
-  features:
-    enableBrowser: true
-    # Add any OpenClaw configuration here
+    bind: lan
 ```
 
-**How it works**: On pod startup, the init container (`config-init`) checks if a config exists in the persistent volume. If not, it copies the ConfigMap config. If one exists, it performs a **deep merge** where the ConfigMap values override/patch the persistent config. This allows Helm to update configuration while preserving other persistent values.
+For runtime configuration changes, use hot-reload (see above).
 
 ### Security Context
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `securityContext.runAsNonRoot` | Run as non-root | `true` |
-| `securityContext.runAsUser` | User ID | `1000` |
-| `securityContext.runAsGroup` | Group ID | `1000` |
-| `securityContext.fsGroup` | File system group | `1000` |
-| `securityContext.capabilities.drop` | Drop capabilities | `["ALL"]` |
+| `securityContext.runAsUser` | User ID (0 for build, app handles permissions) | `0` |
+| `securityContext.capabilities.drop` | Drop all capabilities | `["ALL"]` |
 
 ### Resources
 
@@ -271,81 +233,30 @@ helm install openclaw ./openclaw-chart \
 ```bash
 helm install openclaw ./openclaw-chart \
   --set env[0].name=NODE_ENV \
-  --set env[0].value=production \
-  --set env[1].name=LOG_LEVEL \
-  --set env[1].value=debug
+  --set env[0].value=production
 ```
-
-### Using Secrets
-
-```yaml
-secrets:
-  existingSecret:
-    name: openclaw-secrets
-    keys:
-      - api-token
-      - api-key
-```
-
-### Autoscaling
-
-```bash
-helm install openclaw ./openclaw-chart \
-  --set autoscaling.enabled=true \
-  --set autoscaling.minReplicas=2 \
-  --set autoscaling.maxReplicas=10 \
-  --set autoscaling.targetCPUUtilizationPercentage=80
-```
-
-## Init Container (Config Merge)
-
-The chart includes an init container that performs intelligent config merging:
-
-1. **First deployment**: Copies ConfigMap config to PVC
-2. **Subsequent deployments**: Deep merges ConfigMap over existing PVC config
-
-This allows you to:
-- Update config via Helm values (`openclawConfig`)
-- Preserve config changes made by the application at runtime
-- Have both coexist without conflicts
-
-The init container uses `jq` for deep merging with the formula: `.[0] * .[1]` (ConfigMap overlays PVC)
 
 ## Troubleshooting
 
-### Pod stuck in Init:0/1
-Check init container logs:
+### Pod won't become READY
+
+The first startup takes 5-7 minutes to build OpenClaw. Check logs:
 ```bash
-kubectl logs <pod-name> -c config-init
+kubectl logs <pod-name>
 ```
 
-### Permission denied on config directory
-Verify the security context user/group matches the image requirements. The image user must own `/home/node/.openclaw` and `/home/node/claw`.
+### Permission issues in config directory
+
+The pod runs as root during startup. If you see permission issues later, ensure the PVC is properly bound.
 
 ### PVC not binding
+
 Check available storage classes:
 ```bash
 kubectl get storageclasses
 ```
+
 The chart uses the default storage class if not specified.
-
-## Building OpenClaw Image
-
-OpenClaw doesn't have an official pre-built Docker image. Build using the Dockerfile:
-
-```bash
-git clone https://github.com/moltbot/openclaw.git
-cd openclaw
-docker build -t my-registry/openclaw:latest .
-docker push my-registry/openclaw:latest
-```
-
-Then use in the chart:
-```bash
-helm install openclaw ./openclaw-chart \
-  --set image.repository=my-registry/openclaw \
-  --set image.tag=latest
-```
 
 ## License
 
