@@ -26,10 +26,10 @@ jobs:
           version: 'latest'
 
       - name: Lint chart
-        run: helm lint openclaw-chart
+        run: helm lint .
 
       - name: Package chart
-        run: helm package openclaw-chart
+        run: helm package .
         
       - name: Set chart version from tag
         id: version
