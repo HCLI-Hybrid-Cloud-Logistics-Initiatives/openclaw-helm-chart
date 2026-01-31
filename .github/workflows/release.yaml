@@ -15,6 +15,8 @@ jobs:
     permissions:
       contents: write
       packages: write
+      pages: write
+      id-token: write
     
     steps:
       - name: Checkout code
@@ -72,3 +74,30 @@ jobs:
             helm install openclaw oci://${{ env.REGISTRY }}/${{ steps.version.outputs.OWNER_LOWER }}/openclaw-helm-chart \
               --version ${{ steps.version.outputs.VERSION }}
             ```
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Publish chart to GitHub Pages
+        run: |
+          # Create temporary directory for chart repo
+          mkdir -p /tmp/chart-repo
+          cd /tmp/chart-repo
+          
+          # Checkout gh-pages branch or create it
+          git clone --branch gh-pages https://github.com/${{ github.repository }}.git . || (git init && git remote add origin https://github.com/${{ github.repository }}.git)
+          
+          # Copy the packaged chart
+          cp /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/${{ env.CHART_NAME }}-${{ steps.version.outputs.VERSION }}.tgz .
+          
+          # Generate or update index
+          helm repo index . --url https://${{ steps.version.outputs.OWNER_LOWER }}.github.io/${{ github.event.repository.name }}/
+          
+          # Commit and push
+          git add ${{ env.CHART_NAME }}-${{ steps.version.outputs.VERSION }}.tgz index.yaml
+          git commit -m "Release ${{ env.CHART_NAME }} v${{ steps.version.outputs.VERSION }}" || echo "No changes to commit"
+          git push -u origin gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
