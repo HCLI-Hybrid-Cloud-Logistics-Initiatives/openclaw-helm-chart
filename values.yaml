@@ -127,11 +127,9 @@ tolerations: []
 affinity: {}
 
 # Environment variables
-env: []
-  # - name: NODE_ENV
-  #   value: production
-  # - name: OPENCLAW_GATEWAY_TOKEN
-  #   value: "your-secure-token-here"
+env:
+  - name: OPENCLAW_GATEWAY_TOKEN
+    value: "test-token"
 
 # Environment variables from secrets/configmaps
 envFrom: []
@@ -154,7 +152,7 @@ livenessProbe:
   httpGet:
     path: /health
     port: 18789
-  initialDelaySeconds: 30
+  initialDelaySeconds: 600
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
