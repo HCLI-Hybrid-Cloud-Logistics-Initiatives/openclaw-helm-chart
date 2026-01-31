@@ -86,8 +86,13 @@ jobs:
           mkdir -p /tmp/chart-repo
           cd /tmp/chart-repo
           
-          # Checkout gh-pages branch or create it
-          git clone --branch gh-pages https://github.com/${{ github.repository }}.git . || (git init && git remote add origin https://github.com/${{ github.repository }}.git)
+          # Initialize git repo
+          git init
+          git remote add origin https://github.com/${{ github.repository }}.git
+          
+          # Try to fetch gh-pages branch, otherwise create it
+          git fetch origin gh-pages 2>/dev/null || echo "gh-pages branch does not exist yet"
+          git checkout -B gh-pages origin/gh-pages 2>/dev/null || git checkout --orphan gh-pages
           
           # Copy the packaged chart
           cp /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/${{ env.CHART_NAME }}-${{ steps.version.outputs.VERSION }}.tgz .
