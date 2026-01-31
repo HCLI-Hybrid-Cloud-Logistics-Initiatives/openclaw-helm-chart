@@ -86,9 +86,9 @@ jobs:
           mkdir -p /tmp/chart-repo
           cd /tmp/chart-repo
           
-          # Initialize git repo
+          # Initialize git repo with auth
           git init
-          git remote add origin https://github.com/${{ github.repository }}.git
+          git remote add origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           
           # Try to fetch gh-pages branch, otherwise create it
           git fetch origin gh-pages 2>/dev/null || echo "gh-pages branch does not exist yet"
