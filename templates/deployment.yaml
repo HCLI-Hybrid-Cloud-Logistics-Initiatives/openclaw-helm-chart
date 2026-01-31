@@ -50,18 +50,6 @@ spec:
               echo "Installing pnpm..."
               npm install -g pnpm
               
-               {{- if .Values.openclaw.globalPackages }}
-               export SHELL=/bin/bash && pnpm setup
-               export PNPM_HOME="$HOME/.pnpm"
-               export PATH="$PNPM_HOME:$PATH"
-
-               export SHELL=/bin/bash && pnpm setup || true
-               export PNPM_HOME="$HOME/.pnpm"
-               export PATH="$PNPM_HOME:$PATH"
-
-               echo "Installing global packages with pnpm: {{ join ", " .Values.openclaw.globalPackages }}"
-               pnpm add -g {{ join " " .Values.openclaw.globalPackages }}
-               {{- end }}
 
               echo "Cloning OpenClaw repository..."
               cd /tmp
@@ -79,12 +67,7 @@ spec:
               
               echo "Copying built OpenClaw to shared volume..."
               mkdir -p /openclaw-build
-              cp -r /tmp/openclaw/dist /openclaw-build/
-              cp -r /tmp/openclaw/node_modules /openclaw-build/
-              cp -r /tmp/openclaw/packages /openclaw-build/
-               cp -r /tmp/openclaw/extensions /openclaw-build/
-              cp /tmp/openclaw/openclaw.mjs /openclaw-build/
-              cp /tmp/openclaw/package.json /openclaw-build/
+              cp -r /tmp/openclaw/* /openclaw-build/
               
               # Create symlink in PATH for easy access
               mkdir -p /openclaw-build/bin
@@ -137,20 +120,13 @@ spec:
             - -c
             - |
               # Source openclaw PATH
-              source /openclaw-build/openclaw.env || true
-              
+               npm install -g pnpm
                {{- if .Values.openclaw.globalPackages }}
-               export SHELL=/bin/bash && pnpm setup
-               export PNPM_HOME="$HOME/.pnpm"
-               export PATH="$PNPM_HOME:$PATH"
-
-               export SHELL=/bin/bash && pnpm setup || true
-               export PNPM_HOME="$HOME/.pnpm"
-               export PATH="$PNPM_HOME:$PATH"
-
-               echo "Installing global packages with pnpm: {{ join ", " .Values.openclaw.globalPackages }}"
-               pnpm add -g {{ join " " .Values.openclaw.globalPackages }}
+               echo "Installing global packages: {{ join ", " .Values.openclaw.globalPackages }}"
+               npm install -g {{ join " " .Values.openclaw.globalPackages }}
                {{- end }}
+
+              source /openclaw-build/openclaw.env || true
 
               # On first start, use CLI args to initialize config
               # On subsequent starts, use saved config (allows hot-reload via gateway restart)
@@ -197,7 +173,7 @@ spec:
             {{- toYaml .Values.env | nindent 12 }}
             {{- end }}
             - name: PATH
-              value: /openclaw-build/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+              value: /usr/local/bin:/openclaw-build/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
             - name: OPENCLAW_BUNDLED_PLUGINS_DIR
               value: /openclaw-build/extensions
           
