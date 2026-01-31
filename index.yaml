@@ -3,9 +3,9 @@ entries:
   openclaw-helm-chart:
   - apiVersion: v2
     appVersion: latest
-    created: "2026-01-31T18:01:04.109528477Z"
+    created: "2026-01-31T18:05:43.246602721Z"
     description: A Helm chart for deploying OpenClaw on Kubernetes
-    digest: 23f23e30bd589a1f551f5f0608fe57b6466eb3abe5fe67856cf78f77b08eea9d
+    digest: cc732bcedfa73b1fcc145a4364074a64ce2276620b7a4ddfd6323719bc8113b0
     home: https://github.com/HCLI-Hybrid-Cloud-Logistics-Initiatives/openclaw-helm-chart
     keywords:
     - openclaw
@@ -23,4 +23,4 @@ entries:
     urls:
     - https://hcli-hybrid-cloud-logistics-initiatives.github.io/openclaw-helm-chart/openclaw-helm-chart-0.0.3.tgz
     version: 0.0.3
-generated: "2026-01-31T18:01:04.107779651Z"
+generated: "2026-01-31T18:05:43.243283293Z"
