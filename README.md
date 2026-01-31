@@ -35,29 +35,34 @@ This Helm chart provides a deployment of [OpenClaw](https://github.com/moltbot/o
 
 ### Installation
 
-Add the Helm repository (when available):
+Install from GHCR OCI registry:
+
 ```bash
-helm repo add openclaw https://charts.openclaw.io
-helm repo update
+helm pull oci://ghcr.io/hcli-hybrid-cloud-logistics-initiatives/openclaw-helm-chart
+
+helm install openclaw ./openclaw-helm-chart-*.tgz
 ```
 
 Or install directly from source:
-```bash
-helm install openclaw ./openclaw-chart
-```
-
-### Basic Deployment
 
 ```bash
-helm install openclaw ./openclaw-chart
+git clone https://github.com/HCLI-Hybrid-Cloud-Logistics-Initiatives/openclaw-helm-chart.git
+cd openclaw-helm-chart
+helm install openclaw .
 ```
 
 The chart will automatically build OpenClaw from source on first startup (takes 5-7 minutes).
 
+### Basic Deployment
+
+```bash
+helm install openclaw oci://ghcr.io/hcli-hybrid-cloud-logistics-initiatives/openclaw-helm-chart
+```
+
 ### Enable Ingress
 
 ```bash
-helm install openclaw ./openclaw-chart \
+helm install openclaw oci://ghcr.io/hcli-hybrid-cloud-logistics-initiatives/openclaw-helm-chart \
   --set ingress.enabled=true \
   --set ingress.hosts[0].host=openclaw.example.com \
   --set ingress.className=nginx
