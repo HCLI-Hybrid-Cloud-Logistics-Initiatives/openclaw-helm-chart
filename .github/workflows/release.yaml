@@ -62,14 +62,14 @@ jobs:
             
             ## Installation
             
+            ### Option 1: From GitHub Pages (Recommended)
             ```bash
-            helm pull oci://${{ env.REGISTRY }}/${{ steps.version.outputs.OWNER_LOWER }}/openclaw-helm-chart \
-              --version ${{ steps.version.outputs.VERSION }}
-            
-            helm install openclaw ./openclaw-helm-chart-${{ steps.version.outputs.VERSION }}.tgz
+            helm repo add openclaw https://${{ steps.version.outputs.OWNER_LOWER }}.github.io/openclaw-helm-chart/
+            helm repo update
+            helm install openclaw openclaw/openclaw-helm-chart
             ```
             
-            Or install directly:
+            ### Option 2: From OCI Registry (GHCR)
             ```bash
             helm install openclaw oci://${{ env.REGISTRY }}/${{ steps.version.outputs.OWNER_LOWER }}/openclaw-helm-chart \
               --version ${{ steps.version.outputs.VERSION }}
