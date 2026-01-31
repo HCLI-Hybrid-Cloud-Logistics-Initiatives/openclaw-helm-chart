@@ -2,6 +2,17 @@
 
 All notable changes to the OpenClaw Helm Chart will be documented in this file.
 
+## [0.0.2] - 2026-01-31
+
+### Fixed
+- Fixed global package installation using npm instead of pnpm (Gemini CLI now properly accessible)
+- Fixed PATH environment variable for global npm packages
+- Copy entire OpenClaw directory contents to build volume (ensures all files including docs/templates are present)
+- Resolved "Missing workspace template" errors by including docs directory
+
+### Added
+- Gemini CLI global package installed by default for AI integrations
+
 ## [0.0.1] - 2026-01-31
 
 ### Added
@@ -32,3 +43,4 @@ Or from source:
 ```bash
 helm install openclaw ./openclaw-chart
 ```
+

@@ -2,7 +2,7 @@ apiVersion: v2
 name: openclaw-helm-chart
 description: A Helm chart for deploying OpenClaw on Kubernetes
 type: application
-version: 0.0.1
+version: 0.0.2
 appVersion: "latest"
 home: https://github.com/HCLI-Hybrid-Cloud-Logistics-Initiatives/openclaw-helm-chart
 sources:
