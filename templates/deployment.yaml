@@ -22,7 +22,6 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      activeDeadlineSeconds: 3600
       securityContext:
         runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
         runAsUser: {{ .Values.securityContext.runAsUser }}
