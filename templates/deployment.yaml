@@ -50,9 +50,6 @@ spec:
               echo "Installing pnpm..."
               npm install -g pnpm
               
-              echo "Making pnpm available to node user..."
-              cp $(which pnpm) /openclaw-build/bin/pnpm || true
-
               echo "Cloning OpenClaw repository..."
               cd /tmp
               git clone https://github.com/openclaw/openclaw.git --depth 1
@@ -71,10 +68,20 @@ spec:
               mkdir -p /openclaw-build
               cp -r /tmp/openclaw/* /openclaw-build/
               
+              # Fix ownership for node user
+              chown -R 1000:1000 /openclaw-build/
+              
               # Create symlink in PATH for easy access
               mkdir -p /openclaw-build/bin
               ln -sf /openclaw-build/openclaw.mjs /openclaw-build/bin/openclaw
               echo "export PATH=/openclaw-build/bin:$PATH" > /openclaw-build/openclaw.env
+              
+              echo "Making pnpm available to node user..."
+              mkdir -p /openclaw-build/npm-global/lib/node_modules
+              mkdir -p /openclaw-build/npm-global/bin
+              cp -r /usr/local/lib/node_modules/pnpm /openclaw-build/npm-global/lib/node_modules/
+              ln -sf /openclaw-build/npm-global/lib/node_modules/pnpm/bin/pnpm.cjs /openclaw-build/npm-global/bin/pnpm
+              chown -R 1000:1000 /openclaw-build/npm-global/
               
               echo "Verifying OpenClaw installation..."
               node /openclaw-build/openclaw.mjs --version
@@ -125,11 +132,6 @@ spec:
             - bash
             - -c
             - |
-              # Source openclaw PATH
-              export PATH=/openclaw-build/bin:$PATH
-
-              source /openclaw-build/openclaw.env || true
-
               # On first start, use CLI args to initialize config
               # On subsequent starts, use saved config (allows hot-reload via gateway restart)
               if [ ! -f /home/node/.openclaw/openclaw.json ]; then
@@ -175,7 +177,7 @@ spec:
             {{- toYaml .Values.env | nindent 12 }}
             {{- end }}
             - name: PATH
-              value: /usr/local/bin:/openclaw-build/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+              value: /openclaw-build/npm-global/bin:/openclaw-build/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
             - name: OPENCLAW_BUNDLED_PLUGINS_DIR
               value: /openclaw-build/extensions
           
