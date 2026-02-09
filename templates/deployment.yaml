@@ -50,6 +50,8 @@ spec:
               echo "Installing pnpm..."
               npm install -g pnpm
               
+              echo "Making pnpm available to node user..."
+              cp $(which pnpm) /openclaw-build/bin/pnpm || true
 
               echo "Cloning OpenClaw repository..."
               cd /tmp
@@ -76,6 +78,10 @@ spec:
               
               echo "Verifying OpenClaw installation..."
               node /openclaw-build/openclaw.mjs --version
+              {{- if .Values.openclaw.globalPackages }}
+              echo "Installing global packages: {{ join ", " .Values.openclaw.globalPackages }}"
+              npm install -g {{ join " " .Values.openclaw.globalPackages }}
+              {{- end }}
               echo "✅ OpenClaw built successfully with UI and plugins"
           volumeMounts:
             - name: openclaw-build
@@ -119,13 +125,8 @@ spec:
             - bash
             - -c
             - |
-              # Source openclaw PATH and setup pnpm global dir in home
-              export PNPM_HOME=/home/node/.pnpm
-              export PATH=$PNPM_HOME:$PATH
-              {{- if .Values.openclaw.globalPackages }}
-              echo "Installing global packages: {{ join ", " .Values.openclaw.globalPackages }}"
-              pnpm install -g {{ join " " .Values.openclaw.globalPackages }}
-              {{- end }}
+              # Source openclaw PATH
+              export PATH=/openclaw-build/bin:$PATH
 
               source /openclaw-build/openclaw.env || true
 
