@@ -177,7 +177,9 @@ spec:
             {{- toYaml .Values.env | nindent 12 }}
             {{- end }}
             - name: PATH
-              value: /openclaw-build/npm-global/bin:/openclaw-build/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
+              value: /home/node/.npm-global/bin:/openclaw-build/npm-global/bin:/openclaw-build/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
+            - name: NPM_CONFIG_PREFIX
+              value: /home/node/.npm-global
             - name: OPENCLAW_BUNDLED_PLUGINS_DIR
               value: /openclaw-build/extensions
           
