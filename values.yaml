@@ -81,12 +81,12 @@ openclawConfig:
   # You can add more configuration here, but the primary way to configure
   # OpenClaw after first startup is via 'openclaw onboard' or direct config edits
 
-# Security context (runs as root to build OpenClaw, then application handles permissions)
+# Security context (runs as node user 1000)
 securityContext:
-  runAsNonRoot: false
-  runAsUser: 0
-  runAsGroup: 0
-  fsGroup: 0
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
   capabilities:
     drop:
       - ALL

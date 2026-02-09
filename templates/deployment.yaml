@@ -22,6 +22,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
+      activeDeadlineSeconds: 3600
       securityContext:
         runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
         runAsUser: {{ .Values.securityContext.runAsUser }}
@@ -119,12 +120,13 @@ spec:
             - bash
             - -c
             - |
-              # Source openclaw PATH
-               npm install -g pnpm
-               {{- if .Values.openclaw.globalPackages }}
-               echo "Installing global packages: {{ join ", " .Values.openclaw.globalPackages }}"
-               npm install -g {{ join " " .Values.openclaw.globalPackages }}
-               {{- end }}
+              # Source openclaw PATH and setup pnpm global dir in home
+              export PNPM_HOME=/home/node/.pnpm
+              export PATH=$PNPM_HOME:$PATH
+              {{- if .Values.openclaw.globalPackages }}
+              echo "Installing global packages: {{ join ", " .Values.openclaw.globalPackages }}"
+              pnpm install -g {{ join " " .Values.openclaw.globalPackages }}
+              {{- end }}
 
               source /openclaw-build/openclaw.env || true
 
